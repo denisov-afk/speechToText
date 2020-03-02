@@ -4,6 +4,7 @@ from consumers import AmqpConsumer, ReconnectingAmqpConsumer
 import settings
 import logging
 from google_speech import recognize
+from google.api_core.exceptions import GoogleAPIError
 
 
 class GoogleAmqpConsumer(AmqpConsumer):
@@ -12,12 +13,29 @@ class GoogleAmqpConsumer(AmqpConsumer):
     ROUTING_KEY = settings.ROUTING_KEY
 
     def on_message(self, _unused_channel, basic_deliver, properties, body):
-        request = json.loads(body)
+        try:
+            request = json.loads(body)
+        except json.JSONDecodeError:
+            self.logger.error('Error decoding json message')
+            self.acknowledge_message(basic_deliver.delivery_tag)
+            return
+
         if properties.app_id and properties.app_id in settings.ALLOWED_APP_ID:
-            result = recognize(request['url'],
-                               settings.CREDITIONALS_JSON,
-                               request['language_code'],
-                               int(request['sample_rate_hertz']))
+            try:
+                result = recognize(request['url'],
+                                   settings.CREDITIONALS_JSON,
+                                   request['language_code'],
+                                   int(request['sample_rate_hertz']))
+            except KeyError as e:
+                self.logger.error(f'Error in json object. There is no mandatory key: {e}')
+                self.acknowledge_message(basic_deliver.delivery_tag)
+                return
+
+            except GoogleAPIError as e:
+                self.logger.error(f'Google API error: {e}')
+                self.acknowledge_message(basic_deliver.delivery_tag)
+                return
+
             self.logger.info(result)
             if result:
                 properties.app_id = 'subtitle.speechtotext'
@@ -26,7 +44,7 @@ class GoogleAmqpConsumer(AmqpConsumer):
             super().on_message(_unused_channel, basic_deliver, properties, body)
         else:
             self.logger.warning(f'App id {properties.app_id} is not allowed.')
-            self._channel.basic_ack(basic_deliver.delivery_tag)
+            self.acknowledge_message(basic_deliver.delivery_tag)
 
     def on_channel_open(self, channel):
         super().on_channel_open(channel)
