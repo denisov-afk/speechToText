@@ -355,7 +355,8 @@ class ReconnectingAmqpConsumer(object):
         self._reconnect_delay = 0
         self._amqp_url = amqp_url
         if consumer:
-            self._consumer = consumer(self._amqp_url)
+            self._consumer_class = consumer
+            self._consumer = self._consumer_class(self._amqp_url)
         else:
             self._consumer = AmqpConsumer(self._amqp_url)
 
@@ -379,7 +380,7 @@ class ReconnectingAmqpConsumer(object):
             reconnect_delay = self._get_reconnect_delay()
             self.logger.info('Reconnecting after %d seconds', reconnect_delay)
             time.sleep(reconnect_delay)
-            self._consumer = AmqpConsumer(self._amqp_url)
+            self._consumer = self._consumer_class(self._amqp_url)
 
     def _get_reconnect_delay(self):
         if self._consumer.was_consuming:
