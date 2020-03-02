@@ -19,6 +19,7 @@ class GoogleAmqpConsumer(AmqpConsumer):
                                int(request['sample_rate_hertz']))
             self.logger.info(result)
             if result:
+                properties.app_id = 'subtitle.speechtotext'
                 self._channel.basic_publish('', settings.QUEUE_OUT, result, properties)
             super().on_message(_unused_channel, basic_deliver, properties, body)
         else:
