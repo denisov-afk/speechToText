@@ -25,7 +25,6 @@ class GoogleAmqpConsumer(AmqpConsumer):
             self.logger.warning(f'App id {properties.app_id} is not allowed.')
             self._channel.basic_ack(basic_deliver.delivery_tag)
 
-
     def on_channel_open(self, channel):
         super().on_channel_open(channel)
         channel.queue_declare(settings.QUEUE_OUT)
