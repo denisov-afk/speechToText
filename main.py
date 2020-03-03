@@ -39,7 +39,7 @@ class GoogleAmqpConsumer(AmqpConsumer):
             self.logger.info(result)
             if result:
                 properties.app_id = 'subtitle.speechtotext'
-                properties.timestamp = datetime.datetime.now()
+                properties.timestamp = int(datetime.datetime.now().timestamp())
                 self._channel.basic_publish('', settings.QUEUE_OUT, result, properties)
             super().on_message(_unused_channel, basic_deliver, properties, body)
         else:
