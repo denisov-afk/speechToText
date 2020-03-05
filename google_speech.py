@@ -37,37 +37,37 @@ def recognize(storage_uri, creditionals_json=None, language_code="en-US", sample
     audio = {"uri": storage_uri}
 
     # response = client.recognize(config, audio)
+    # https://issue.life/questions/57559101
+    # по ссылке как сделать индикатор
+    print('go')
     operation = client.long_running_recognize(config, audio)
     response = operation.result()
     json_result = dict()
+    json_result['words'] = list()
+    json_result['transcript'] = ''
+    json_result['language_code'] = language_code
+    json_result['confidence'] = 0
+    json_result['sample_rate_hertz'] = sample_rate_hertz
+    results_count = 0
 
     for result in response.results:
-        # First alternative is the most probable result
+        results_count += 1
         alternative = result.alternatives[0]
-        # print(f"Transcript: {alternative.transcript}")
-
-        json_result['transcript'] = alternative.transcript
-        json_result['confidence'] = alternative.confidence
-        json_result['language_code'] = language_code
-        json_result['sample_rate_hertz'] = sample_rate_hertz
-        json_result['words'] = list()
+        json_result['transcript'] += alternative.transcript
+        json_result['confidence'] += alternative.confidence
 
         for word in alternative.words:
-            # print(f"Word: {word.word}")
-            # print(f"Start time: {word.start_time.seconds} seconds {word.start_time.nanos} nanos")
-            # print(f"End time: {word.end_time.seconds} seconds {word.end_time.nanos} nanos")
-
             json_result['words'].append({'word': word.word,
                                          'start_time': word.start_time.seconds + word.start_time.nanos / 1000**3,
                                          'end_time': word.end_time.seconds + word.end_time.nanos / 1000**3
                                          })
 
-    # print(f'RESPONSE:   {json_result}')
-
+    json_result['confidence'] /= results_count
     json_result = json.dumps(json_result)
     return json_result
 
 
 if __name__ == '__main__':
-    uri = 'gs://subtitles-a6e05.appspot.com/test.mp3'
-    print(recognize(uri, CREDITIONALS_JSON))
+    uri = 'gs://subtitles-a6e05.appspot.com/admin/videoplayback.mp3'
+    # uri = 'gs://subtitles-a6e05.appspot.com/admin/mp4-aac.mp3'
+    print(recognize(uri, CREDITIONALS_JSON, language_code='ru-ru'))
