@@ -5,6 +5,8 @@ import settings
 import logging
 from google_speech import recognize
 from google.api_core.exceptions import GoogleAPIError
+import requests
+from urllib import parse
 
 
 class GoogleAmqpConsumer(AmqpConsumer):
@@ -40,7 +42,14 @@ class GoogleAmqpConsumer(AmqpConsumer):
             if result:
                 properties.app_id = 'subtitle.speechtotext'
                 properties.timestamp = int(datetime.datetime.now().timestamp())
-                self._channel.basic_publish('', settings.QUEUE_OUT, result, properties)
+                # self._channel.basic_publish('', settings.QUEUE_OUT, result, properties)
+                api_url = '/'.join((settings.WEBSITE_URL, settings.ENDPOINT, str(properties.headers['video_id'])))
+                api_url += '/'
+                result = {"captions": result}
+                self.logger.info(f'Result: {result}')
+                requests.patch(api_url, result)
+
+
             super().on_message(_unused_channel, basic_deliver, properties, body)
         else:
             self.logger.warning(f'App id {properties.app_id} is not allowed.')

@@ -36,7 +36,9 @@ def recognize(storage_uri, creditionals_json=None, language_code="en-US", sample
     }
     audio = {"uri": storage_uri}
 
-    response = client.recognize(config, audio)
+    # response = client.recognize(config, audio)
+    operation = client.long_running_recognize(config, audio)
+    response = operation.result()
     json_result = dict()
 
     for result in response.results:
